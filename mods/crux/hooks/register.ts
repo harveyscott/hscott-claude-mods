@@ -164,13 +164,19 @@ export const register: Register = (on, options) => {
     await $.hscottUi.register({ id: TAB, title: 'Crux', open: true })
     await $.command.register({
       name: 'crux',
-      description: 'Show the crux pane (/crux refresh to re-read the changes)',
+      description: 'Show the crux pane (/crux refresh re-reads the changes, /crux options lists settings)',
     })
     schedule($, 100)
     return next(e)
   })
 
   on('command.run', { command: 'crux' }, async ($, e) => {
+    if (e.args.trim() === 'options') {
+      const rows = (await $.config.list()).filter(row => row.key.startsWith('crux.'))
+      if (rows.length === 0) return { text: 'crux: /config lists no crux options in this session.' }
+      const lines = rows.map(row => `  ${row.label} (${row.key}) = ${JSON.stringify(row.value)}`)
+      return { text: ['crux options, as /config lists them:', ...lines].join('\n') }
+    }
     if (e.args.trim() === 'refresh') {
       await refresh($)
       const { value } = await $.state.get(RESULT)

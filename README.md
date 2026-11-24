@@ -44,8 +44,14 @@ The pane opens by itself where the terminal has room for a sidebar (the
 fullscreen layout). Otherwise run `/crux`. `/crux refresh` re-reads the changes
 now. Pressing a change puts `path:line` into the prompt so you can ask about it.
 
-Options (in `/config` under crux): **Summarise automatically** (off = rules only,
-no model calls), **Summary model**, **Also hide**.
+Options are rows in `/config` (type `crux` there to find them), and
+`/crux options` prints their current values:
+
+- **Summarise automatically**: off = rules only, no model calls.
+- **Summary model**: the model that writes the descriptions.
+- **Also hide**: comma-separated globs to hide, such as `src/generated/**, *.sql`.
+- **Git path**: the git executable, for machines where Claude Code can't start
+  `git` by name. Left empty, crux tries `git` and then its usual install locations.
 
 ## Layout
 
