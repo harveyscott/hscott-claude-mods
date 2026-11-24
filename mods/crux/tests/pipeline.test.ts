@@ -23,10 +23,14 @@ const DIFF = [
 const REPLY =
   '[{"hunks":[0],"kind":"core","title":"Look up by hashed key","description":"Misses now fall back to load()."}]'
 
-/** Stands in for git, the model and hscott-ui; returns what crux sent each. */
-const world = (on: On) => {
+/**
+ * Stands in for git, the model and hscott-ui; returns what crux sent each.
+ * `startable` is the one git program name that starts (a bare `git` by default).
+ */
+const world = (on: On, startable = 'git') => {
   const clock = mock.clock(on)
   const views: unknown[][] = []
+  const programs: string[] = []
   let modelCalls = 0
 
   on('engine.create', async (_, e, next) => ({
@@ -43,7 +47,14 @@ const world = (on: On) => {
   on('command.register', () => ({ value: { command: 'crux' } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('process.run', (_, e) => {
+    if (e.argv[0] !== startable) throw new Error(`ENOENT: Command '${e.argv[0]}' not found`)
+    programs.push(e.argv[0])
     const argv = e.argv.join(' ')
+    if (argv.endsWith('--version')) {
+      return {
+        value: { exitCode: 0, stdout: 'git version 2.47.0\n', stderr: '', isStdoutTruncated: false, isStderrTruncated: false },
+      }
+    }
     const out = (stdout: string, exitCode = 0) => ({
       value: { exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false },
     })
@@ -58,7 +69,7 @@ const world = (on: On) => {
     return { value: { isAnswered: true, text: REPLY, usage: {} } }
   })
 
-  return { clock, views, modelCalls: () => modelCalls }
+  return { clock, views, programs, modelCalls: () => modelCalls }
 }
 
 test('a refresh shows the core file named by the model, and caches it', async ($, on) => {
@@ -94,4 +105,27 @@ test('session start refreshes on its own once the debounce passes', async ($, on
 
   await seen.clock.advance(200)
   expect(JSON.stringify(seen.views.at(-1))).toContain('Look up by hashed key')
+})
+
+test('when a bare git cannot start, git is found at its install path', async ($, on) => {
+  const seen = world(on, 'C:/Program Files/Git/cmd/git.exe')
+  await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
+
+  const done = await $.command.run({ command: 'crux', args: 'refresh' })
+  expect(done.text).toBe('crux: 1 core file.')
+  expect(new Set(seen.programs)).toEqual(new Set(['C:/Program Files/Git/cmd/git.exe']))
+})
+
+test('the Git path option is tried first', { options: { gitPath: 'D:/tools/git/bin/git.exe' } }, async ($, on) => {
+  const seen = world(on, 'D:/tools/git/bin/git.exe')
+  await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
+  await $.command.run({ command: 'crux', args: 'refresh' })
+  expect(seen.programs[0]).toBe('D:/tools/git/bin/git.exe')
+})
+
+test('with no git anywhere the pane says how to fix it', async ($, on) => {
+  const seen = world(on, 'nowhere')
+  await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
+  await $.command.run({ command: 'crux', args: 'refresh' })
+  expect(JSON.stringify(seen.views.at(-1))).toContain('Git path')
 })

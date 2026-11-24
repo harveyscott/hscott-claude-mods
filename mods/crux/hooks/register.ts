@@ -1,7 +1,7 @@
 import type { EngineInterface, Register, Timer } from 'claude-code'
 
 import type { CruxChange, CruxFile, CruxResult } from '../types'
-import { collect } from './collect'
+import { collect, findGit, GIT_CANDIDATES } from './collect'
 import { classify, parseIgnore } from './filter'
 import { buildPrompt, cacheKey, parseReply, ruleChanges, SYSTEM } from './summarise'
 import { buildView } from './view'
@@ -18,10 +18,20 @@ const DEBOUNCE_MS = 1500
 /** Files summarised at the same time. */
 const PARALLEL = 3
 
-type Config = { ignore: RegExp[]; model: string; autoSummarise: boolean }
+type Config = { ignore: RegExp[]; model: string; autoSummarise: boolean; gitPath: string }
 
 // Set by register from the person's options; a reload sets it again.
-let config: Config = { ignore: [], model: 'claude-haiku-5-5', autoSummarise: true }
+let config: Config = { ignore: [], model: 'claude-haiku-5-5', autoSummarise: true, gitPath: '' }
+
+// The git program that worked, found once per load.
+let git: string | undefined
+
+async function resolveGit($: EngineInterface): Promise<string | undefined> {
+  if (git !== undefined) return git
+  const candidates = config.gitPath.length > 0 ? [config.gitPath, ...GIT_CANDIDATES] : GIT_CANDIDATES
+  git = await findGit(argv => $.process.run(argv, { timeoutMs: 10_000 }), candidates)
+  return git
+}
 
 // Only for not running two refreshes at once: losing them at a reload is harmless.
 let timer: Timer | undefined
@@ -59,9 +69,18 @@ async function summarise($: EngineInterface, file: CruxFile): Promise<CruxChange
 }
 
 async function refreshOnce($: EngineInterface): Promise<void> {
+  const program = await resolveGit($)
+  if (program === undefined) {
+    return failed(
+      $,
+      'error',
+      'Claude Code could not start git. Set crux’s “Git path” option to your git executable.',
+    )
+  }
   const collected = await collect(
     argv => $.process.run(argv, { timeoutMs: 20_000 }),
     path => $.fs.read(path),
+    program,
   )
   if (collected.state === 'not-a-repo') return failed($, 'not-a-repo')
   if (collected.state === 'error') return failed($, 'error', collected.message)
@@ -137,7 +156,9 @@ export const register: Register = (on, options) => {
     ignore: parseIgnore(typeof options.ignore === 'string' ? options.ignore : ''),
     model: typeof options.model === 'string' && options.model.length > 0 ? options.model : 'claude-haiku-5-5',
     autoSummarise: options.autoSummarise !== false,
+    gitPath: typeof options.gitPath === 'string' ? options.gitPath.trim() : '',
   }
+  git = undefined
 
   on('session.start', async ($, e, next) => {
     await $.hscottUi.register({ id: TAB, title: 'Crux', open: true })

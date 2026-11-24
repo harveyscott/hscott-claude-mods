@@ -24,6 +24,12 @@
       "title": "Also hide",
       "description": "Comma-separated globs of paths to hide, on top of tests, docs, lockfiles and build output. Example: src/generated/**, *.sql",
       "default": ""
+    },
+    "gitPath": {
+      "type": "string",
+      "title": "Git path",
+      "description": "The git executable, when Claude Code cannot start git by name. Empty: try git, then its usual install locations.",
+      "default": ""
     }
   }
 }

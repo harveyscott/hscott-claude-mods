@@ -5,7 +5,35 @@ export type Run = (argv: string[]) => Promise<{ exitCode: number; stdout: string
 export type ReadFile = (path: string) => Promise<string>
 
 /** Plain git output whatever the person's config says. */
-const GIT = ['git', '-c', 'core.quotepath=off', '-c', 'color.ui=never', '--no-pager']
+const GIT_OPTIONS = ['-c', 'core.quotepath=off', '-c', 'color.ui=never', '--no-pager']
+
+/**
+ * Where git usually lives, tried in order after the person's own setting.
+ * A bare `git` comes first; the full paths are for machines where Claude Code
+ * cannot start a program by name (it refuses some PATH setups on Windows).
+ */
+export const GIT_CANDIDATES = [
+  'git',
+  'C:/Program Files/Git/cmd/git.exe',
+  'C:/Program Files/Git/bin/git.exe',
+  'C:/Program Files (x86)/Git/cmd/git.exe',
+  '/usr/bin/git',
+  '/opt/homebrew/bin/git',
+  '/usr/local/bin/git',
+]
+
+/** The first candidate that starts and answers `--version`; undefined when none does. */
+export async function findGit(run: Run, candidates: string[]): Promise<string | undefined> {
+  for (const git of candidates) {
+    try {
+      const probe = await run([git, '--version'])
+      if (probe.exitCode === 0 && probe.stdout.startsWith('git version')) return git
+    } catch {
+      // Could not start: try the next one.
+    }
+  }
+  return undefined
+}
 
 /** Git's empty tree: the base for a repository with no commit yet. */
 const EMPTY_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
@@ -91,7 +119,9 @@ export type Collected =
   | { state: 'not-a-repo' }
   | { state: 'error'; message: string }
 
-export async function collect(run: Run, read: ReadFile): Promise<Collected> {
+/** Reads the changes with the git program `git` (a name or a full path). */
+export async function collect(run: Run, read: ReadFile, git = 'git'): Promise<Collected> {
+  const GIT = [git, ...GIT_OPTIONS]
   const top = await run([...GIT, 'rev-parse', '--show-toplevel'])
   if (top.exitCode !== 0) return { state: 'not-a-repo' }
   const root = top.stdout.trim()
