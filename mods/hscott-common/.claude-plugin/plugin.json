@@ -1,0 +1,8 @@
+{
+  "name": "hscott-common",
+  "version": "0.1.0",
+  "author": { "name": "Harvey Scott" },
+  "license": "MIT",
+  "description": "Shared helpers the other mods in this repo depend on.",
+  "types": "./types/index.d.ts"
+}

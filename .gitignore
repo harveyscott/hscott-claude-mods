@@ -1,0 +1,3 @@
+# Types the engine lays beside a mod at load time
+.claude-plugin/types/
+node_modules/

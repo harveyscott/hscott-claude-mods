@@ -1,0 +1,17 @@
+{
+  "name": "hscott-claude-mods",
+  "owner": { "name": "harveyscott" },
+  "description": "Claude Code mods by Harvey Scott, plus the shared hscott-common library they build on.",
+  "plugins": [
+    {
+      "name": "hscott-common",
+      "source": "./mods/hscott-common",
+      "description": "Shared helpers the other mods in this repo depend on."
+    },
+    {
+      "name": "hello",
+      "source": "./mods/hello",
+      "description": "Example mod: a /hello command built on hscott-common."
+    }
+  ]
+}
