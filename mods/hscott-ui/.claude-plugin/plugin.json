@@ -1,0 +1,8 @@
+{
+  "name": "hscott-ui",
+  "version": "0.1.0",
+  "author": { "name": "Harvey Scott" },
+  "license": "MIT",
+  "description": "Pane host for hscott mods: other mods hand it plain-data views and it draws them in a sidebar pane.",
+  "types": "./types/index.d.ts"
+}

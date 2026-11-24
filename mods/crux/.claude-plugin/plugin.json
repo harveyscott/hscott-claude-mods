@@ -1,0 +1,35 @@
+{
+  "name": "crux",
+  "version": "0.1.0",
+  "author": { "name": "Harvey Scott" },
+  "license": "MIT",
+  "description": "A sidebar that shows the crux of your uncommitted changes: the core files and a one-line description of each major change, without tests, docs or mechanical edits.",
+  "types": "./types/index.d.ts",
+  "dependencies": ["hscott-ui"],
+  "userConfig": {
+    "autoSummarise": {
+      "type": "boolean",
+      "title": "Summarise automatically",
+      "description": "After each turn that changed files, ask a small model to describe the core changes. Off: rules only, no model calls.",
+      "default": true
+    },
+    "model": {
+      "type": "string",
+      "title": "Summary model",
+      "description": "The model that writes the change descriptions.",
+      "default": "claude-haiku-5-5"
+    },
+    "ignore": {
+      "type": "string",
+      "title": "Also hide",
+      "description": "Comma-separated globs of paths to hide, on top of tests, docs, lockfiles and build output. Example: src/generated/**, *.sql",
+      "default": ""
+    },
+    "gitPath": {
+      "type": "string",
+      "title": "Git path",
+      "description": "The git executable, when Claude Code cannot start git by name. Empty: try git, then its usual install locations.",
+      "default": ""
+    }
+  }
+}

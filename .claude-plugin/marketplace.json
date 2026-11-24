@@ -12,6 +12,16 @@
       "name": "hello",
       "source": "./mods/hello",
       "description": "Example mod: a /hello command built on hscott-common."
+    },
+    {
+      "name": "hscott-ui",
+      "source": "./mods/hscott-ui",
+      "description": "Pane host: other mods hand it plain-data views and it draws them as sidebar panes."
+    },
+    {
+      "name": "crux",
+      "source": "./mods/crux",
+      "description": "A sidebar showing the crux of your uncommitted changes, without tests, docs or mechanical edits."
     }
   ]
 }

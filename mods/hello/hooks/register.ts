@@ -7,8 +7,11 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'hello' }, async $ => {
-    const version = await $.hscott.version()
-    const text = await $.hscott.format($.plugin.name, `Hello! hscott-common ${version} is loaded.`)
+    const version = await $.hscott.version({})
+    const text = await $.hscott.format({
+      mod: $.plugin.name,
+      message: `Hello! hscott-common ${version} is loaded.`,
+    })
     return { text }
   })
 }

@@ -4,7 +4,7 @@ import type { Hscott } from '../types'
 const VERSION = '0.1.0'
 
 const hscott: Hscott = {
-  format: async (mod, message) => `[${mod}] ${message}`,
+  format: async ({ mod, message }) => `[${mod}] ${message}`,
   version: async () => VERSION,
 }
 
