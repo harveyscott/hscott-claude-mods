@@ -32,6 +32,8 @@ const world = (on: On, startable = 'git') => {
   const views: unknown[][] = []
   const programs: string[] = []
   let modelCalls = 0
+  // Crux registers with open: true, so its pane starts open.
+  const pane = { isOpen: true }
 
   on('engine.create', async (_, e, next) => ({
     ...(await next(e)),
@@ -40,8 +42,17 @@ const world = (on: On, startable = 'git') => {
       setView: async ({ view }: { id: string; view: unknown[] }) => {
         views.push(view)
       },
-      open: async () => ({ isPlaced: true }),
-      close: async () => undefined,
+      open: async () => {
+        pane.isOpen = true
+        return { isPlaced: true }
+      },
+      close: async () => {
+        pane.isOpen = false
+      },
+      toggle: async () => {
+        pane.isOpen = !pane.isOpen
+        return pane.isOpen ? { isOpen: true, isPlaced: true } : { isOpen: false }
+      },
     },
   }))
   on('command.register', () => ({ value: { command: 'crux' } }))
@@ -69,7 +80,7 @@ const world = (on: On, startable = 'git') => {
     return { value: { isAnswered: true, text: REPLY, usage: {} } }
   })
 
-  return { clock, views, programs, modelCalls: () => modelCalls }
+  return { clock, views, programs, pane, modelCalls: () => modelCalls }
 }
 
 test('a refresh shows the core file named by the model, and caches it', async ($, on) => {
@@ -128,4 +139,30 @@ test('with no git anywhere the pane says how to fix it', async ($, on) => {
   await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
   await $.command.run({ command: 'crux', args: 'refresh' })
   expect(JSON.stringify(seen.views.at(-1))).toContain('Git path')
+})
+
+test('/crux toggles the pane; /crux close and /crux open are explicit', async ($, on) => {
+  const seen = world(on)
+  await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
+
+  expect((await $.command.run({ command: 'crux', args: '' })).text).toBe('Crux pane closed. /crux opens it again.')
+  expect(seen.pane.isOpen).toBe(false)
+
+  expect((await $.command.run({ command: 'crux', args: '' })).text).toBe('Crux pane opened.')
+  expect(seen.pane.isOpen).toBe(true)
+
+  await $.command.run({ command: 'crux', args: 'close' })
+  expect(seen.pane.isOpen).toBe(false)
+  await $.command.run({ command: 'crux', args: 'close' })
+  expect(seen.pane.isOpen).toBe(false)
+
+  await $.command.run({ command: 'crux', args: 'open' })
+  expect(seen.pane.isOpen).toBe(true)
+})
+
+test('/crux with an unknown word says what it takes', async ($, on) => {
+  world(on)
+  await $.session.start({ cwd: '/repo', surface: 'terminal', isInteractive: true })
+  const done = await $.command.run({ command: 'crux', args: 'shut' })
+  expect(done.text).toContain('/crux open, close, refresh or options')
 })

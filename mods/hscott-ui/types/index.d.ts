@@ -49,6 +49,9 @@ export type HscottUiView = HscottUiNode[]
 /** What `open` answers: whether a surface draws the pane now. */
 export type HscottUiOpenResult = { isPlaced: boolean; reason?: string }
 
+/** What `toggle` answers: whether the pane is open afterwards, and if so whether it is drawn. */
+export type HscottUiToggleResult = { isOpen: boolean; isPlaced?: boolean; reason?: string }
+
 /** Names a registered tab. */
 export type HscottUiTabRef = { id: string }
 
@@ -67,6 +70,8 @@ export type HscottUi = {
   open(input: HscottUiTabRef): Promise<HscottUiOpenResult>
   /** Closes the tab's pane; the tab stays registered. */
   close(input: HscottUiTabRef): Promise<void>
+  /** Closes the tab's pane if it is open, opens it if not. */
+  toggle(input: HscottUiTabRef): Promise<HscottUiToggleResult>
 }
 
 declare module 'claude-code' {

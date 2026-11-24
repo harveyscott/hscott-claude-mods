@@ -164,24 +164,41 @@ export const register: Register = (on, options) => {
     await $.hscottUi.register({ id: TAB, title: 'Crux', open: true })
     await $.command.register({
       name: 'crux',
-      description: 'Show the crux pane (/crux refresh re-reads the changes, /crux options lists settings)',
+      description: 'Open or close the crux pane; /crux open|close|refresh|options',
+      argumentHint: '[open|close|refresh|options]',
     })
     schedule($, 100)
     return next(e)
   })
 
   on('command.run', { command: 'crux' }, async ($, e) => {
-    if (e.args.trim() === 'options') {
+    const action = e.args.trim().toLowerCase()
+    if (action === 'close') {
+      await $.hscottUi.close({ id: TAB })
+      return { text: 'Crux pane closed. /crux opens it again.' }
+    }
+    if (action === '' || action === 'toggle') {
+      const toggled = await $.hscottUi.toggle({ id: TAB })
+      if (!toggled.isOpen) return { text: 'Crux pane closed. /crux opens it again.' }
+      schedule($, 100)
+      return {
+        text: toggled.isPlaced === true ? 'Crux pane opened.' : `Crux pane is open but not shown: ${toggled.reason ?? ''}`,
+      }
+    }
+    if (action === 'options') {
       const rows = (await $.config.list()).filter(row => row.key.startsWith('crux.'))
       if (rows.length === 0) return { text: 'crux: /config lists no crux options in this session.' }
       const lines = rows.map(row => `  ${row.label} (${row.key}) = ${JSON.stringify(row.value)}`)
       return { text: ['crux options, as /config lists them:', ...lines].join('\n') }
     }
-    if (e.args.trim() === 'refresh') {
+    if (action === 'refresh') {
       await refresh($)
       const { value } = await $.state.get(RESULT)
       const shown = value?.files.filter(file => file.hidden === undefined && file.mechanical !== true) ?? []
       return { text: `crux: ${shown.length} core file${shown.length === 1 ? '' : 's'}.` }
+    }
+    if (action !== 'open') {
+      return { text: `crux: unknown "${action}". Use /crux, /crux open, close, refresh or options.` }
     }
     const opened = await $.hscottUi.open({ id: TAB })
     schedule($, 100)
