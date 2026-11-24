@@ -41,8 +41,16 @@ reads `git diff HEAD` and your untracked files, then:
   until that file's changes change, so unchanged files cost nothing.
 
 The pane opens by itself where the terminal has room for a sidebar (the
-fullscreen layout). Otherwise run `/crux`. `/crux refresh` re-reads the changes
-now. Pressing a change puts `path:line` into the prompt so you can ask about it.
+fullscreen layout). Pressing a change puts `path:line` into the prompt so you
+can ask about it.
+
+| Command | Does |
+| --- | --- |
+| `/crux` | Opens the pane, or closes it if it is open. |
+| `/crux open`, `/crux close` | Opens or closes it, whichever state it is in. |
+| `/crux refresh` | Re-reads the changes now. |
+| `/crux options` | Lists crux's settings and their values. |
+| `/panel`, `/panel close` | Opens or closes every hscott-ui pane; add a tab id (`/panel close crux`) for one. |
 
 Options are rows in `/config` (type `crux` there to find them), and
 `/crux options` prints their current values:

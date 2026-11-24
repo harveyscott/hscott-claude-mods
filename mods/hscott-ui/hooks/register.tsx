@@ -40,6 +40,20 @@ export const register: Register = on => {
         close: async ({ id }: HscottUiTabRef) => {
           await beneath.ui.close({ id: `hscott-${id}` })
         },
+        toggle: async ({ id }: HscottUiTabRef) => {
+          const panes = await beneath.ui.panes()
+          if (panes.some(pane => pane.id === `hscott-${id}`)) {
+            await beneath.ui.close({ id: `hscott-${id}` })
+            return { isOpen: false }
+          }
+          const { value = [] } = await beneath.state.get(TABS)
+          const tab = value.find(one => one.id === id)
+          if (tab === undefined) return { isOpen: false, reason: `no tab "${id}"` }
+          const opened = await beneath.ui.open({ id: `hscott-${tab.id}`, title: tab.title })
+          return opened.isPlaced
+            ? { isOpen: true, isPlaced: true }
+            : { isOpen: true, isPlaced: false, reason: opened.reason }
+        },
       },
     }
   })
@@ -47,16 +61,30 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'panel',
-      description: 'Open the hscott mods panes (/panel <tab> for one)',
+      description: 'Open the hscott mods panes: /panel [close] [tab]',
+      argumentHint: '[close] [tab]',
     })
     return next(e)
   })
 
-  on('command.run', { command: 'panel' }, async $ => {
-    const { value: tabs = [] } = await $.state.get(TABS)
-    if (tabs.length === 0) return { text: 'No hscott mod has registered a tab.' }
-    for (const tab of tabs) await $.ui.open({ id: `${PANE_PREFIX}${tab.id}`, title: tab.title })
-    return { text: `Opened: ${tabs.map(tab => tab.title).join(', ')}` }
+  // /panel opens every tab's pane, /panel close closes them; a tab id narrows either to one.
+  on('command.run', { command: 'panel' }, async ($, e) => {
+    const words = e.args.trim().split(/\s+/).filter(word => word.length > 0)
+    const isClose = words[0] === 'close'
+    const only = isClose ? words[1] : words[0]
+
+    const { value: registered = [] } = await $.state.get(TABS)
+    if (registered.length === 0) return { text: 'No hscott mod has registered a tab.' }
+    const tabs = only === undefined ? registered : registered.filter(tab => tab.id === only)
+    if (tabs.length === 0) {
+      return { text: `No tab "${only}". Tabs: ${registered.map(tab => tab.id).join(', ')}` }
+    }
+
+    for (const tab of tabs) {
+      if (isClose) await $.ui.close({ id: `${PANE_PREFIX}${tab.id}` })
+      else await $.ui.open({ id: `${PANE_PREFIX}${tab.id}`, title: tab.title })
+    }
+    return { text: `${isClose ? 'Closed' : 'Opened'}: ${tabs.map(tab => tab.title).join(', ')}` }
   })
 
   on('ui.render', { component: 'Pane' }, async ($, e, next) => {
